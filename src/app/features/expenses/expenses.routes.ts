@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
-import { ExpenseContainerComponent } from './components/expense-container/expense-container.component';
+import { ExpensesContainerComponent } from './components/expenses-container/expenses-container.component';
 
 export const expensesRoutes: Routes = [
   {
     path: '',
-    component: ExpenseContainerComponent,
+    component: ExpensesContainerComponent,
     title: 'Expenses - Daily Expenses'
   }
 ];

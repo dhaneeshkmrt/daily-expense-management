@@ -124,7 +124,7 @@ export class ExpenseService {
     this.error.set(null);
 
     const docRef = doc(this.firestore, 'expenses', id);
-    const updateData: Partial<ExpenseData> = {
+    const updateData: any = {
       ...updates,
       updatedAt: Timestamp.now()
     };

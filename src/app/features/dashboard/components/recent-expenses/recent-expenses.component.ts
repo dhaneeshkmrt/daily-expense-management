@@ -1,5 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ExpenseService } from '../../../../core/services/expense.service';
+import { Expense } from '../../../../core/models/expense.model';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface RecentExpense {
   id: string;
@@ -14,7 +18,7 @@ interface RecentExpense {
 
 @Component({
   selector: 'app-recent-expenses',
-  imports: [CommonModule],
+  imports: [CommonModule, MatProgressSpinnerModule],
   template: `
     <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
       <div class="p-6 border-b border-gray-100">
@@ -26,83 +30,114 @@ interface RecentExpense {
         </div>
       </div>
       
-      <div class="divide-y divide-gray-100">
-        @for (expense of recentExpenses(); track expense.id) {
-          <div class="p-4 hover:bg-gray-50 transition-colors duration-150">
-            <div class="flex items-center justify-between">
-              <div class="flex-1">
-                <div class="flex items-center justify-between mb-1">
-                  <h4 class="font-medium text-gray-900 text-sm">{{ expense.description }}</h4>
-                  <span class="text-sm font-semibold text-gray-900">₹{{ expense.amount | number:'1.0-0' }}</span>
-                </div>
-                <div class="flex items-center justify-between text-xs text-gray-600">
-                  <span>{{ expense.category }} • {{ expense.subcategory }}</span>
-                  <div class="flex items-center space-x-2">
-                    <span [class]="getPaymentMethodClass(expense.paidBy)">{{ expense.paidBy }}</span>
-                    <span>{{ expense.time }}</span>
+      @if (loading()) {
+        <div class="flex justify-center items-center py-8">
+          <mat-spinner diameter="30"></mat-spinner>
+        </div>
+      } @else if (recentExpenses().length === 0) {
+        <div class="text-center py-8 text-gray-500">
+          <p>No recent expenses found</p>
+        </div>
+      } @else {
+        <div class="divide-y divide-gray-100">
+          @for (expense of recentExpenses(); track expense.id) {
+            <div class="p-4 hover:bg-gray-50 transition-colors duration-150">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center justify-between mb-1">
+                    <h4 class="font-medium text-gray-900 text-sm">{{ expense.description }}</h4>
+                    <span class="text-sm font-semibold text-gray-900">₹{{ expense.amount | number:'1.0-0' }}</span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs text-gray-600">
+                    <span>{{ expense.category }} • {{ expense.subcategory }}</span>
+                    <div class="flex items-center space-x-2">
+                      <span [class]="getPaymentMethodClass(expense.paidBy)">{{ expense.paidBy }}</span>
+                      <span>{{ expense.time }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        }
-      </div>
+          }
+        </div>
+      }
     </div>
   `
 })
-export class RecentExpensesComponent {
-  protected readonly recentExpenses = signal<RecentExpense[]>([
-    {
-      id: '1',
-      description: 'Grocery Shopping',
-      amount: 1200,
-      category: 'Monthly',
-      subcategory: 'Grocery',
-      paidBy: 'DD',
-      date: 'Nov 28',
-      time: '2:30 PM'
-    },
-    {
-      id: '2',
-      description: 'Petrol Fill',
-      amount: 800,
-      category: 'Monthly',
-      subcategory: 'Petrol',
-      paidBy: 'DC',
-      date: 'Nov 28',
-      time: '10:15 AM'
-    },
-    {
-      id: '3',
-      description: 'Medicine',
-      amount: 340,
-      category: 'Medical',
-      subcategory: 'Medical Bill',
-      paidBy: 'ND',
-      date: 'Nov 27',
-      time: '6:45 PM'
-    },
-    {
-      id: '4',
-      description: 'Coffee & Snacks',
-      amount: 180,
-      category: 'Food & Snack',
-      subcategory: 'Snacks',
-      paidBy: 'NC',
-      date: 'Nov 27',
-      time: '4:20 PM'
-    },
-    {
-      id: '5',
-      description: 'Mangoes',
-      amount: 250,
-      category: 'Fruits',
-      subcategory: 'Fruits',
-      paidBy: 'DD',
-      date: 'Nov 26',
-      time: '7:30 PM'
-    }
-  ]);
+export class RecentExpensesComponent implements OnInit {
+  private readonly expenseService = inject(ExpenseService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  // Component state
+  readonly loading = signal(true);
+  readonly recentExpenses = signal<RecentExpense[]>([]);
+
+  ngOnInit(): void {
+    this.loadRecentExpenses();
+  }
+
+  private loadRecentExpenses(): void {
+    this.expenseService.getRecentExpenses(5).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (expenses) => {
+        const recentExpenses = expenses.map(expense => this.mapExpenseToRecentExpense(expense));
+        this.recentExpenses.set(recentExpenses);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        console.error('Failed to load recent expenses:', error);
+        this.loading.set(false);
+      }
+    });
+  }
+
+  private mapExpenseToRecentExpense(expense: Expense): RecentExpense {
+    const date = expense.date instanceof Date 
+      ? expense.date 
+      : expense.date?.toDate?.() 
+      ? expense.date.toDate() 
+      : new Date();
+    
+    return {
+      id: expense.id,
+      description: expense.description,
+      amount: expense.amount,
+      category: this.getCategoryName(expense.categoryId),
+      subcategory: this.getSubcategoryName(expense.subcategoryId),
+      paidBy: expense.paidBy,
+      date: date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+  }
+
+  private getCategoryName(categoryId: string): string {
+    const categoryNames: Record<string, string> = {
+      'food': 'Food & Dining',
+      'transport': 'Transportation',
+      'shopping': 'Shopping',
+      'entertainment': 'Entertainment',
+      'bills': 'Bills & Utilities',
+      'health': 'Healthcare',
+      'education': 'Education',
+      'other': 'Other'
+    };
+    return categoryNames[categoryId] || 'Unknown';
+  }
+
+  private getSubcategoryName(subcategoryId: string): string {
+    const subcategoryNames: Record<string, string> = {
+      'restaurant': 'Restaurant',
+      'groceries': 'Groceries',
+      'fuel': 'Fuel',
+      'public-transport': 'Public Transport',
+      'clothing': 'Clothing',
+      'electronics': 'Electronics',
+      'movies': 'Movies',
+      'electricity': 'Electricity'
+    };
+    return subcategoryNames[subcategoryId] || 'Unknown';
+  }
 
   protected getPaymentMethodClass(paidBy: string): string {
     const classes = {
