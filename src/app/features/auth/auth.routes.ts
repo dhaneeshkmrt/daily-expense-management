@@ -12,13 +12,13 @@ export const authRoutes: Routes = [
   {
     path: 'login',
     component: LoginComponent,
-    canActivate: [noAuthGuard],
+    // canActivate: [noAuthGuard],
     title: 'Login - Daily Expenses'
   },
   {
     path: 'register',
     component: RegisterComponent,
-    canActivate: [noAuthGuard],
+    // canActivate: [noAuthGuard],
     title: 'Register - Daily Expenses'
   }
 ];

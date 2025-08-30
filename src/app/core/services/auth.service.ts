@@ -43,11 +43,16 @@ export class AuthService {
     authState(this.auth).pipe(
       takeUntilDestroyed(this.destroyRef),
       tap(firebaseUser => {
+        console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'User logged out');
         this.firebaseUser.set(firebaseUser);
         if (firebaseUser) {
           this.mapFirebaseUserToAppUser(firebaseUser);
         } else {
           this.currentUser.set(null);
+          // Only navigate to login if we're not already there
+          if (this.router.url !== '/auth/login' && !this.router.url.startsWith('/auth/')) {
+            this.router.navigate(['/auth/login']);
+          }
         }
       })
     ).subscribe();
@@ -120,11 +125,17 @@ export class AuthService {
     
     return defer(() => from(signOut(this.auth))).pipe(
       tap(() => {
+        console.log('Sign out successful');
         this.loading.set(false);
+        // Clear signals immediately
+        this.firebaseUser.set(null);
         this.currentUser.set(null);
+        this.error.set(null);
+        // Navigate to login - the authState listener will also handle this
         this.router.navigate(['/auth/login']);
       }),
       catchError(error => {
+        console.error('Sign out error:', error);
         this.loading.set(false);
         this.error.set(this.getErrorMessage(error));
         throw error;

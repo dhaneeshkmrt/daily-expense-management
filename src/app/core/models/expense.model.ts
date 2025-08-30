@@ -1,8 +1,9 @@
 import { PaymentMethodCode } from './user.model';
+import { Timestamp } from '@angular/fire/firestore';
 
 export interface Expense {
   id: string;
-  date: Date;
+  date: Date | Timestamp;
   amount: number;
   description: string;
   notes?: string;
@@ -14,8 +15,38 @@ export interface Expense {
   monthPeriod: string; // 'YYYY-MM' format for custom periods
   isRecurring: boolean;
   recurringId?: string; // Links to recurring expense template
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | Timestamp;
+  updatedAt: Date | Timestamp;
+}
+
+// Firestore-compatible version (for creation/updates)
+export interface ExpenseData {
+  date: Timestamp;
+  amount: number;
+  description: string;
+  notes?: string;
+  categoryId: string;
+  subcategoryId: string;
+  microCategoryId?: string;
+  paidBy: PaymentMethodCode;
+  userId: string;
+  monthPeriod: string;
+  isRecurring: boolean;
+  recurringId?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// For forms and UI
+export interface ExpenseFormData {
+  date: Date;
+  amount: number;
+  description: string;
+  notes?: string;
+  categoryId: string;
+  subcategoryId: string;
+  microCategoryId?: string;
+  paidBy: PaymentMethodCode;
 }
 
 export interface RecurringExpense {
