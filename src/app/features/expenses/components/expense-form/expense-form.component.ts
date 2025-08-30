@@ -50,7 +50,7 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
         <form [formGroup]="expenseForm" (ngSubmit)="onSubmit()" class="space-y-4">
           <!-- Date and Amount Row -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <mat-form-field appearance="outline" class="w-full">
+            <mat-form-field appearance="fill" class="w-full">
               <mat-label>Date</mat-label>
               <input
                 matInput
@@ -65,7 +65,7 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
               </mat-error>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="w-full">
+            <mat-form-field appearance="fill" class="w-full">
               <mat-label>Amount</mat-label>
               <input
                 matInput
@@ -86,7 +86,7 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
           </div>
 
           <!-- Description -->
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field appearance="fill" class="w-full">
             <mat-label>Description</mat-label>
             <input
               matInput
@@ -100,7 +100,7 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
 
           <!-- Category Selectors -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <mat-form-field appearance="outline" class="w-full">
+            <mat-form-field appearance="fill" class="w-full">
               <mat-label>Category</mat-label>
               <mat-select formControlName="categoryId">
                 @for (category of mockCategories; track category.id) {
@@ -112,7 +112,7 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
               </mat-error>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="w-full">
+            <mat-form-field appearance="fill" class="w-full">
               <mat-label>Subcategory</mat-label>
               <mat-select formControlName="subcategoryId">
                 @for (subcategory of mockSubcategories; track subcategory.id) {
@@ -126,7 +126,7 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
           </div>
 
           <!-- Payment Method -->
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field appearance="fill" class="w-full">
             <mat-label>Payment Method</mat-label>
             <mat-select formControlName="paidBy">
               @for (method of availablePaymentMethods(); track method.code) {
@@ -142,7 +142,7 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
           </mat-form-field>
 
           <!-- Notes (Optional) -->
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field appearance="fill" class="w-full">
             <mat-label>Notes (Optional)</mat-label>
             <textarea
               matInput
@@ -195,6 +195,12 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
     .expense-form-card {
       max-width: 600px;
       margin: 0 auto;
+    }
+
+    // Clean form field styling
+    ::ng-deep .mat-mdc-form-field {
+      width: 100%;
+      margin-bottom: 1rem;
     }
   `]
 })

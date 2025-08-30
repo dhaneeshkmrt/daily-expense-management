@@ -48,7 +48,11 @@ export class ExpenseService {
   // Get expenses for current user with real-time updates
   getUserExpenses(filters?: ExpenseFilter): Observable<Expense[]> {
     const currentUser = this.authService.currentUser();
+    console.log('getUserExpenses - Current user:', currentUser);
+    
     if (!currentUser) {
+      console.log('No current user, returning empty array');
+      this.error.set('User not authenticated');
       return of([]);
     }
 
@@ -72,11 +76,22 @@ export class ExpenseService {
 
     const q = query(this.expensesCollection, ...constraints);
     
+    console.log('Executing Firestore query for user:', currentUser.id);
+    
     return collectionData(q, { idField: 'id' }).pipe(
-      map((expenses: any[]) => expenses.map(expense => this.convertTimestampsToDate(expense))),
+      map((expenses: any[]) => {
+        console.log('Received expenses from Firestore:', expenses.length);
+        return expenses.map(expense => this.convertTimestampsToDate(expense));
+      }),
       catchError(error => {
         console.error('Error fetching expenses:', error);
-        this.error.set('Failed to load expenses');
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          userId: currentUser.id,
+          isAuthenticated: this.authService.isAuthenticated()
+        });
+        this.error.set('Failed to load expenses: ' + error.message);
         return of([]);
       })
     );
@@ -195,7 +210,10 @@ export class ExpenseService {
   // Get recent expenses (last 10)
   getRecentExpenses(limitCount: number = 10): Observable<Expense[]> {
     const currentUser = this.authService.currentUser();
+    console.log('getRecentExpenses - Current user:', currentUser);
+    
     if (!currentUser) {
+      console.log('No current user for recent expenses, returning empty array');
       return of([]);
     }
 
