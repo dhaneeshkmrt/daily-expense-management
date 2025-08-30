@@ -1,0 +1,29 @@
+// Mobile navigation specific styles
+.mobile-nav-panel {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+}
+
+// Active navigation item styling for mobile
+a[routerLinkActive] {
+  mat-icon {
+    color: white !important;
+  }
+}
+
+// Smooth transitions
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.transition-opacity {
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+// Prevent body scroll when nav is open
+body.mobile-nav-open {
+  overflow: hidden;
+}

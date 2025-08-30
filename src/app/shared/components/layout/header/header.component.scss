@@ -1,0 +1,27 @@
+.mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  
+  @media (max-width: 768px) {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+  }
+}
+
+.mat-icon-button {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.mat-menu-panel {
+  min-width: 220px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}

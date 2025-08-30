@@ -1,0 +1,26 @@
+// Smooth transitions for mobile nav
+.mobile-nav-overlay {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.mobile-nav-panel {
+  transition: transform 0.3s ease-in-out;
+}
+
+// Custom scrollbar for main content
+main::-webkit-scrollbar {
+  width: 6px;
+}
+
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+main::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+main::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
