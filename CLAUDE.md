@@ -61,3 +61,4 @@ Refer to `.claude/angular.md` for comprehensive Angular best practices. Key poin
 - Fresh Angular project with basic setup
 - No routes or features implemented yet
 - Ready for expense management functionality development
+- only kill 4200 process if it already open otherwise don't do anythins

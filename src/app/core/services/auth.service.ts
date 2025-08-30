@@ -1,8 +1,8 @@
-import { Injectable, inject, signal, computed, DestroyRef } from '@angular/core';
+import { Injectable, inject, signal, computed, DestroyRef, Injector } from '@angular/core';
 import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, authState, User as FirebaseUser, updateProfile } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { from, Observable, of, defer } from 'rxjs';
-import { map, catchError, tap, takeUntil } from 'rxjs/operators';
+import { map, catchError, tap, takeUntil, switchMap } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { User } from '../models/user.model';
 
@@ -25,6 +25,7 @@ export class AuthService {
   private readonly auth = inject(Auth);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   private readonly googleProvider = new GoogleAuthProvider();
 
   // Signals for reactive state
@@ -83,10 +84,20 @@ export class AuthService {
     this.error.set(null);
 
     return defer(() => from(createUserWithEmailAndPassword(this.auth, data.email, data.password))).pipe(
-      map(result => {
+      switchMap(result => {
         // Update display name
         updateProfile(result.user, { displayName: data.name });
-        return this.mapFirebaseUserToAppUser(result.user, data.role);
+        const user = this.mapFirebaseUserToAppUser(result.user, data.role);
+        
+        // Initialize predefined categories for new user
+        return this.initializeCategoriesForNewUser().pipe(
+          map(() => user),
+          catchError(error => {
+            console.error('Failed to initialize categories for new user:', error);
+            // Don't fail registration if category initialization fails
+            return of(user);
+          })
+        );
       }),
       tap(() => {
         this.loading.set(false);
@@ -215,6 +226,20 @@ export class AuthService {
       default:
         return error.message || 'An error occurred during authentication.';
     }
+  }
+
+  // Initialize predefined categories for new user
+  private initializeCategoriesForNewUser(): Observable<void> {
+    return from(import('./category.service')).pipe(
+      switchMap(module => {
+        const categoryService = this.injector.get(module.CategoryService);
+        return categoryService.initializePredefinedCategories();
+      }),
+      catchError(error => {
+        console.error('Failed to initialize categories:', error);
+        return of(undefined);
+      })
+    );
   }
 
   // Clear error

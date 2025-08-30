@@ -1,4 +1,4 @@
-import { Component, inject, signal, input, output } from '@angular/core';
+import { Component, inject, signal, input, output, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,8 +12,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { ExpenseService } from '../../../../core/services/expense.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { CategoryService } from '../../../../core/services/category.service';
 import { ExpenseFormData, Expense } from '../../../../core/models/expense.model';
 import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user.model';
+import { Category, Subcategory, MicroCategory } from '../../../../core/models/category.model';
 
 @Component({
   selector: 'app-expense-form',
@@ -98,13 +100,19 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
             </mat-error>
           </mat-form-field>
 
-          <!-- Category Selectors -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Category Selectors (3-Level) -->
+          <div class="space-y-4">
+            <!-- Main Category -->
             <mat-form-field appearance="fill" class="w-full">
               <mat-label>Category</mat-label>
-              <mat-select formControlName="categoryId">
-                @for (category of mockCategories; track category.id) {
-                  <mat-option [value]="category.id">{{ category.name }}</mat-option>
+              <mat-select formControlName="categoryId" (selectionChange)="onCategoryChange($event.value)">
+                @for (category of categories(); track category.id) {
+                  <mat-option [value]="category.id">
+                    <span class="flex items-center gap-2">
+                      <span>{{ category.icon }}</span>
+                      {{ category.name }}
+                    </span>
+                  </mat-option>
                 }
               </mat-select>
               <mat-error *ngIf="categoryIdControl.hasError('required')">
@@ -112,17 +120,42 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
               </mat-error>
             </mat-form-field>
 
+            <!-- Subcategory -->
             <mat-form-field appearance="fill" class="w-full">
               <mat-label>Subcategory</mat-label>
-              <mat-select formControlName="subcategoryId">
-                @for (subcategory of mockSubcategories; track subcategory.id) {
+              <mat-select 
+                formControlName="subcategoryId" 
+                [disabled]="!selectedCategorySubcategories().length"
+                (selectionChange)="onSubcategoryChange($event.value)">
+                @for (subcategory of selectedCategorySubcategories(); track subcategory.id) {
                   <mat-option [value]="subcategory.id">{{ subcategory.name }}</mat-option>
                 }
               </mat-select>
               <mat-error *ngIf="subcategoryIdControl.hasError('required')">
                 Subcategory is required
               </mat-error>
+              @if (!selectedCategorySubcategories().length && categoryIdControl.value) {
+                <mat-hint>No subcategories available for selected category</mat-hint>
+              }
             </mat-form-field>
+
+            <!-- Micro Category (Optional) -->
+            @if (selectedSubcategoryMicroCategories().length > 0) {
+              <mat-form-field appearance="fill" class="w-full">
+                <mat-label>Micro Category (Optional)</mat-label>
+                <mat-select formControlName="microCategoryId">
+                  <mat-option [value]="">None</mat-option>
+                  @for (microCategory of selectedSubcategoryMicroCategories(); track microCategory.id) {
+                    <mat-option [value]="microCategory.id">
+                      {{ microCategory.name }}
+                      @if (microCategory.isRecurring) {
+                        <span class="text-xs text-blue-600 ml-2">(Recurring)</span>
+                      }
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
           </div>
 
           <!-- Payment Method -->
@@ -204,10 +237,11 @@ import { PaymentMethodCode, PAYMENT_METHODS } from '../../../../core/models/user
     }
   `]
 })
-export class ExpenseFormComponent {
+export class ExpenseFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   protected readonly expenseService = inject(ExpenseService);
   private readonly authService = inject(AuthService);
+  private readonly categoryService = inject(CategoryService);
 
   // Inputs
   readonly expense = input<Expense | null>(null);
@@ -217,6 +251,28 @@ export class ExpenseFormComponent {
   readonly expenseAdded = output<string>();
   readonly expenseUpdated = output<void>();
   readonly cancelled = output<void>();
+
+  // Category signals
+  readonly categories = signal<Category[]>([]);
+  readonly subcategories = signal<Subcategory[]>([]);
+  readonly microCategories = signal<MicroCategory[]>([]);
+
+  // Computed values for hierarchical category selection
+  readonly selectedCategorySubcategories = computed(() => {
+    const categoryId = this.expenseForm.controls.categoryId.value;
+    if (!categoryId) return [];
+    
+    const category = this.categories().find(cat => cat.id === categoryId);
+    return category?.subcategories || [];
+  });
+
+  readonly selectedSubcategoryMicroCategories = computed(() => {
+    const subcategoryId = this.expenseForm.controls.subcategoryId.value;
+    if (!subcategoryId) return [];
+    
+    const subcategory = this.selectedCategorySubcategories().find(sub => sub.id === subcategoryId);
+    return subcategory?.microCategories || [];
+  });
 
   // Form
   readonly expenseForm = this.fb.nonNullable.group({
@@ -239,37 +295,21 @@ export class ExpenseFormComponent {
   protected get paidByControl() { return this.expenseForm.controls.paidBy; }
 
   // Available payment methods based on current user
-  protected readonly availablePaymentMethods = signal([
-    { code: 'DC' as const, label: 'Dhaneesh Cash', type: 'cash' as const },
-    { code: 'DD' as const, label: 'Dhaneesh Digital', type: 'digital' as const },
-    { code: 'NC' as const, label: 'Nisha Cash', type: 'cash' as const },
-    { code: 'ND' as const, label: 'Nisha Digital', type: 'digital' as const }
-  ]);
+  protected readonly availablePaymentMethods = computed(() => {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) return [];
+    
+    return currentUser.paymentMethods || [
+      { code: 'DC' as const, label: 'Dhaneesh Cash', type: 'cash' as const, balance: 0, userId: currentUser.id },
+      { code: 'DD' as const, label: 'Dhaneesh Digital', type: 'digital' as const, balance: 0, userId: currentUser.id },
+      { code: 'NC' as const, label: 'Nisha Cash', type: 'cash' as const, balance: 0, userId: currentUser.id },
+      { code: 'ND' as const, label: 'Nisha Digital', type: 'digital' as const, balance: 0, userId: currentUser.id }
+    ];
+  });
 
-  // Mock data for categories (will be replaced with real data)
-  protected readonly mockCategories = [
-    { id: 'food', name: 'Food & Dining' },
-    { id: 'transport', name: 'Transportation' },
-    { id: 'shopping', name: 'Shopping' },
-    { id: 'entertainment', name: 'Entertainment' },
-    { id: 'bills', name: 'Bills & Utilities' },
-    { id: 'health', name: 'Healthcare' },
-    { id: 'education', name: 'Education' },
-    { id: 'other', name: 'Other' }
-  ];
-
-  protected readonly mockSubcategories = [
-    { id: 'restaurant', name: 'Restaurant' },
-    { id: 'groceries', name: 'Groceries' },
-    { id: 'fuel', name: 'Fuel' },
-    { id: 'public-transport', name: 'Public Transport' },
-    { id: 'clothing', name: 'Clothing' },
-    { id: 'electronics', name: 'Electronics' },
-    { id: 'movies', name: 'Movies' },
-    { id: 'electricity', name: 'Electricity' }
-  ];
-
-  constructor() {
+  ngOnInit(): void {
+    this.loadCategories();
+    
     // Initialize form with expense data if in edit mode
     const expense = this.expense();
     if (expense && this.editMode()) {
@@ -286,7 +326,68 @@ export class ExpenseFormComponent {
         notes: expense.notes || '',
         categoryId: expense.categoryId,
         subcategoryId: expense.subcategoryId,
+        microCategoryId: expense.microCategoryId || '',
         paidBy: expense.paidBy
+      });
+    }
+  }
+
+  private loadCategories(): void {
+    this.categoryService.getUserCategories().subscribe({
+      next: (categories) => {
+        console.log('Loaded categories:', categories);
+        this.categories.set(categories);
+      },
+      error: (error) => console.error('Failed to load categories:', error)
+    });
+  }
+
+  protected onCategoryChange(categoryId: string): void {
+    // Reset subcategory and micro category when category changes
+    this.expenseForm.patchValue({
+      subcategoryId: '',
+      microCategoryId: ''
+    });
+    
+    // Load subcategories for selected category
+    if (categoryId) {
+      this.categoryService.getCategorySubcategories(categoryId).subscribe({
+        next: (subcategories) => {
+          console.log('Loaded subcategories for category:', subcategories);
+          // Update the selected category's subcategories
+          const categories = this.categories();
+          const updatedCategories = categories.map(cat => 
+            cat.id === categoryId ? { ...cat, subcategories } : cat
+          );
+          this.categories.set(updatedCategories);
+        },
+        error: (error) => console.error('Failed to load subcategories:', error)
+      });
+    }
+  }
+
+  protected onSubcategoryChange(subcategoryId: string): void {
+    // Reset micro category when subcategory changes
+    this.expenseForm.patchValue({
+      microCategoryId: ''
+    });
+    
+    // Load micro categories for selected subcategory
+    if (subcategoryId) {
+      this.categoryService.getSubcategoryMicroCategories(subcategoryId).subscribe({
+        next: (microCategories) => {
+          console.log('Loaded micro categories for subcategory:', microCategories);
+          // Update the selected subcategory's micro categories
+          const categories = this.categories();
+          const updatedCategories = categories.map(cat => ({
+            ...cat,
+            subcategories: cat.subcategories.map(sub => 
+              sub.id === subcategoryId ? { ...sub, microCategories } : sub
+            )
+          }));
+          this.categories.set(updatedCategories);
+        },
+        error: (error) => console.error('Failed to load micro categories:', error)
       });
     }
   }

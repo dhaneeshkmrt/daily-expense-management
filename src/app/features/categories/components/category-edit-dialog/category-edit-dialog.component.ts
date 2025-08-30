@@ -145,7 +145,7 @@ interface CategoryEditForm {
           mat-flat-button 
           color="primary"
           (click)="updateCategory()"
-          [disabled]="loading() || !formData.name?.trim()"
+          [disabled]="loading() || !formData.name.trim()"
           class="flex-1">
           @if (loading()) {
             <mat-spinner diameter="20" class="mr-2"></mat-spinner>
