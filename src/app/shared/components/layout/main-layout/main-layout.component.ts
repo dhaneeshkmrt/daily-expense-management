@@ -23,33 +23,24 @@ import { MobileNavComponent } from '../mobile-nav/mobile-nav.component';
         (closeNav)="closeMobileNav()">
       </app-mobile-nav>
       
-      <!-- Desktop Layout -->
-      <div class="hidden md:flex h-screen">
-        <!-- Sidebar -->
-        <app-sidebar class="w-80 flex-shrink-0"></app-sidebar>
+      <!-- Main Layout Container -->
+      <div class="flex h-screen">
+        <!-- Sidebar - Hidden on mobile -->
+        <app-sidebar class="hidden md:block w-80 flex-shrink-0"></app-sidebar>
         
-        <!-- Main Content -->
+        <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
-          <app-header></app-header>
+          <!-- Header -->
+          <app-header 
+            [showMenuButton]="true"
+            (menuClick)="toggleMobileNav()">
+          </app-header>
           
-          <main class="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+          <!-- Main Content with Router Outlet -->
+          <main class="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-6">
             <router-outlet></router-outlet>
           </main>
         </div>
-      </div>
-      
-      <!-- Mobile Layout -->
-      <div class="md:hidden">
-        <!-- Mobile Header -->
-        <app-header 
-          [showMenuButton]="true"
-          (menuClick)="toggleMobileNav()">
-        </app-header>
-        
-        <!-- Mobile Content -->
-        <main class="pt-16 min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-          <router-outlet></router-outlet>
-        </main>
       </div>
     </div>
   `,

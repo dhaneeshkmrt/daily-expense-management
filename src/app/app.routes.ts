@@ -12,6 +12,11 @@ export const routes: Routes = [
     component: MainLayoutComponent,
     children:[
       {
+        path: '',
+        redirectTo: '/dashboard',
+        pathMatch: 'full'
+      },
+      {
         path: 'dashboard',
         loadChildren: () => import('./features/dashboard/dashboard.routes').then(r => r.dashboardRoutes),
         canActivate: [authGuard]

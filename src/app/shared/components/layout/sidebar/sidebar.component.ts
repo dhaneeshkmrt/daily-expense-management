@@ -1,8 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
+import { AuthService } from '../../../../core/services/auth.service';
 
 interface NavigationItem {
   path: string;
@@ -31,7 +32,7 @@ interface NavigationItem {
           </div>
           <div>
             <h1 class="text-lg font-bold text-gray-900">Daily Expenses</h1>
-            <p class="text-sm text-gray-500">{{ currentUser().name }}</p>
+            <p class="text-sm text-gray-500">{{ currentUser()?.name }}</p>
           </div>
         </div>
       </div>
@@ -71,11 +72,11 @@ interface NavigationItem {
       <div class="p-4 border-t border-gray-100">
         <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
           <div class="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-            {{ currentUser().initials }}
+            {{ currentUser()?.initials }}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-900 truncate">{{ currentUser().name }}</p>
-            <p class="text-xs text-gray-500 truncate">{{ currentUser().role }}</p>
+            <p class="text-sm font-medium text-gray-900 truncate">{{ currentUser()?.name }}</p>
+            <p class="text-xs text-gray-500 truncate">{{ currentUser()?.role }}</p>
           </div>
         </div>
       </div>
@@ -84,11 +85,8 @@ interface NavigationItem {
   styleUrl: './sidebar.component.scss'
 })
 export class SidebarComponent {
-  protected readonly currentUser = signal({
-    name: 'Dhaneesh Kumar',
-    initials: 'DK',
-    role: 'Primary User'
-  });
+  private readonly authService = inject(AuthService);
+  protected readonly currentUser = this.authService.currentUser;
 
   protected readonly navigationItems: NavigationItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
