@@ -7,6 +7,11 @@ export interface User {
   paymentMethods: PaymentMethod[];
   createdAt: Date;
   updatedAt: Date;
+  // Firebase Auth properties
+  firebaseUid?: string;
+  photoURL?: string;
+  emailVerified?: boolean;
+  provider?: 'google.com' | 'password';
 }
 
 export interface PaymentMethod {

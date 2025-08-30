@@ -5,6 +5,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -14,7 +17,9 @@ import { MatBadgeModule } from '@angular/material/badge';
     MatIconModule,
     MatButtonModule,
     MatMenuModule,
-    MatBadgeModule
+    MatBadgeModule,
+    MatDividerModule,
+    MatTooltipModule
   ],
   template: `
     <mat-toolbar class="bg-white shadow-sm border-b border-gray-100 h-16">
@@ -57,9 +62,16 @@ import { MatBadgeModule } from '@angular/material/badge';
             mat-icon-button 
             [matMenuTriggerFor]="userMenu"
             class="ml-2">
-            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-              {{ userInitials() }}
-            </div>
+            @if (authService.currentUser()?.photoURL) {
+              <img 
+                [src]="authService.currentUser()?.photoURL"
+                [alt]="authService.userDisplayName()"
+                class="w-8 h-8 rounded-full object-cover">
+            } @else {
+              <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                {{ authService.userInitials() }}
+              </div>
+            }
           </button>
         </div>
       </div>
@@ -68,8 +80,19 @@ import { MatBadgeModule } from '@angular/material/badge';
     <!-- User Menu -->
     <mat-menu #userMenu="matMenu" class="mt-2">
       <div class="px-4 py-3 border-b border-gray-100">
-        <p class="font-medium text-gray-900">{{ userName() }}</p>
-        <p class="text-sm text-gray-500">{{ userEmail() }}</p>
+        <p class="font-medium text-gray-900">{{ authService.userDisplayName() }}</p>
+        <p class="text-sm text-gray-500">{{ authService.currentUser()?.email }}</p>
+        @if (authService.currentUser()?.provider) {
+          <div class="flex items-center mt-1">
+            <span class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+              @if (authService.currentUser()?.provider === 'google.com') {
+                Google Account
+              } @else {
+                Email Account
+              }
+            </span>
+          </div>
+        }
       </div>
       <button mat-menu-item class="flex items-center space-x-3 py-3">
         <mat-icon class="text-gray-500">person</mat-icon>
@@ -84,7 +107,11 @@ import { MatBadgeModule } from '@angular/material/badge';
         <span>Help & Support</span>
       </button>
       <mat-divider></mat-divider>
-      <button mat-menu-item class="flex items-center space-x-3 py-3 text-red-600">
+      <button 
+        mat-menu-item 
+        (click)="onSignOut()" 
+        class="flex items-center space-x-3 py-3 text-red-600"
+        [disabled]="authService.loading()">
         <mat-icon>logout</mat-icon>
         <span>Sign Out</span>
       </button>
@@ -94,17 +121,23 @@ import { MatBadgeModule } from '@angular/material/badge';
 })
 export class HeaderComponent {
   // Angular-specific properties (inputs, outputs) grouped first
-  protected readonly showMenuButton = input(false);
-  protected readonly title = input('Dashboard');
-  protected readonly notificationCount = input(0);
-  protected readonly userName = input('Dhaneesh Kumar');
-  protected readonly userEmail = input('dhaneesh@example.com');
-  protected readonly userInitials = input('DK');
+  readonly showMenuButton = input(false);
+  readonly title = input('Dashboard');
+  readonly notificationCount = input(0);
   
-  protected readonly menuClick = output<void>();
+  readonly menuClick = output<void>();
+  
+  // Injected services
+  protected readonly authService = inject(AuthService);
   
   // Methods after properties
   protected onMenuClick(): void {
     this.menuClick.emit();
+  }
+  
+  protected onSignOut(): void {
+    this.authService.signOut().subscribe({
+      error: (error) => console.error('Sign out failed:', error)
+    });
   }
 }

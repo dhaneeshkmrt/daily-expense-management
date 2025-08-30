@@ -91,10 +91,10 @@ interface NavigationItem {
   styleUrl: './mobile-nav.component.scss'
 })
 export class MobileNavComponent {
-  // Angular-specific properties (inputs, outputs) grouped first  
-  protected readonly isOpen = input(false);
-  protected readonly toggleNav = output<void>();
-  protected readonly closeNav = output<void>();
+  // Angular-specific properties (inputs, outputs) grouped first
+  readonly isOpen = input(false);
+  readonly toggleNav = output<void>();
+  readonly closeNav = output<void>();
   
   // Component properties
   protected readonly navigationItems: NavigationItem[] = [
