@@ -537,6 +537,73 @@ export class BudgetService {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   }
 
+  // Create new budget
+  createBudget(budgetData: BudgetData): Observable<string> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    const now = Timestamp.now();
+    
+    return from(addDoc(this.budgetsCollection, {
+      ...budgetData,
+      createdAt: now,
+      updatedAt: now
+    })).pipe(
+      map(docRef => {
+        console.log('Budget created successfully:', docRef.id);
+        this.loading.set(false);
+        return docRef.id;
+      }),
+      catchError(error => {
+        console.error('Error creating budget:', error);
+        this.loading.set(false);
+        this.error.set('Failed to create budget');
+        throw error;
+      })
+    );
+  }
+
+  // Set budget for a specific category
+  setBudgetForCategory(categoryId: string, amount: number): Observable<string> {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) {
+      throw new Error('User must be authenticated to set category budgets');
+    }
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    const currentPeriod = this.getCurrentMonthPeriod();
+    
+    // Check if budget already exists for this category and period
+    const existingBudgets = this.budgets().filter(
+      budget => budget.categoryId === categoryId && budget.monthPeriod === currentPeriod
+    );
+
+    if (existingBudgets.length > 0) {
+      // Update existing budget
+      const existingBudget = existingBudgets[0];
+      return this.updateBudget(existingBudget.id, { budgetAmount: amount }).pipe(
+        map(() => existingBudget.id)
+      );
+    } else {
+      // Create new budget
+      const budgetData: BudgetData = {
+        categoryId,
+        monthPeriod: currentPeriod,
+        budgetAmount: amount,
+        spentAmount: 0,
+        remainingAmount: amount,
+        accountBalance: 0,
+        isOverBudget: false,
+        overBudgetAmount: 0,
+        userId: currentUser.id
+      };
+
+      return this.createBudget(budgetData);
+    }
+  }
+
   // Clear error state
   clearError(): void {
     this.error.set(null);

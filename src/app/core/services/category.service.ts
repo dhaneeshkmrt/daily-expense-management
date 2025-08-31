@@ -100,6 +100,11 @@ export class CategoryService {
         console.log('getUserCategories - Categories data:', categories);
         const processedCategories = categories.map(category => this.convertTimestampsToDate(category));
         this.categories.set(processedCategories);
+        
+        // Also load all subcategories and micro categories
+        this.loadAllSubcategories();
+        this.loadAllMicroCategories();
+        
         return processedCategories;
       }),
       catchError(error => {
@@ -472,6 +477,44 @@ export class CategoryService {
       '#14B8A6', '#F43F5E', '#22D3EE', '#A855F7', '#059669'
     ];
     return colors[index % colors.length];
+  }
+
+  // Load all subcategories for the user
+  private loadAllSubcategories(): void {
+    const q = query(
+      this.subcategoriesCollection,
+      orderBy('order', 'asc'),
+      orderBy('name', 'asc')
+    );
+
+    collectionData(q, { idField: 'id' }).subscribe({
+      next: (subcategories: any[]) => {
+        const processed = subcategories.map(sub => this.convertTimestampsToDate(sub));
+        this.subcategories.set(processed);
+      },
+      error: (error) => {
+        console.error('Error loading all subcategories:', error);
+      }
+    });
+  }
+
+  // Load all micro categories for the user
+  private loadAllMicroCategories(): void {
+    const q = query(
+      this.microCategoriesCollection,
+      orderBy('order', 'asc'),
+      orderBy('name', 'asc')
+    );
+
+    collectionData(q, { idField: 'id' }).subscribe({
+      next: (microCategories: any[]) => {
+        const processed = microCategories.map(micro => this.convertTimestampsToDate(micro));
+        this.microCategories.set(processed);
+      },
+      error: (error) => {
+        console.error('Error loading all micro categories:', error);
+      }
+    });
   }
 
   // Clear error state
